@@ -3,6 +3,7 @@ from django.http import Http404
 from django.utils.timezone import make_aware
 from django.utils.dateparse import parse_datetime
 from todo.models import Task
+from django.shortcuts import get_object_or_404, redirect
 
 
 # Create your views here.
@@ -34,6 +35,11 @@ def detail(request, task_id):
         "task" : task,
     }
     return render(request, "todo/detail.html", context)
+
+def delete(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    task.delete()
+    return redirect('index')
 
 def update(request, task_id):
     try:
