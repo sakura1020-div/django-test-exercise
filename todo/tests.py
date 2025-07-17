@@ -115,3 +115,44 @@ class TodoViewTestCase(TestCase):
         response=client.get("/1/")
 
         self.assertEqual(response.status_code, 404)
+
+class TaskUpdateViewTestCase(TestCase):
+    def setUp(self):
+        self.task = Task.objects.create(
+            title="Old Title",
+            due_at=timezone.make_aware(datetime(2024, 7, 1))
+        )
+        self.client = Client()
+
+    def test_update_get(self):
+        """
+        GETリクエストで編集画面が表示されるか
+        """
+        response = self.client.get(f"/update/{self.task.pk}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.templates[0].name, "todo/edit.html")
+        self.assertEqual(response.context["task"], self.task)
+
+    def test_update_post(self):
+        """
+        POSTリクエストでタイトル・締切が変更されるか
+        """
+        data = {
+            "title": "Updated Title",
+            "due_at": "2024-07-15 12:00:00"
+        }
+        response = self.client.post(f"/update/{self.task.pk}/", data, follow=True)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.title, "Updated Title")
+        self.assertEqual(self.task.due_at, timezone.make_aware(datetime(2024, 7, 15, 12, 0, 0)))
+        # 正しくリダイレクトされ detail.html を返すか
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.templates[0].name, "todo/detail.html")
+        self.assertEqual(response.context["task"], self.task)
+    
+    def test_update_post_not_found(self):
+        """
+        存在しないタスクには404 (POST)
+        """
+        response = self.client.post("/update/9999/", {"title": "nope", "due_at": "2024-08-01 00:00:00"})
+        self.assertEqual(response.status_code, 404)
